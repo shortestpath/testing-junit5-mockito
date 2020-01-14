@@ -16,10 +16,11 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class OwnerControllerTest {
@@ -28,6 +29,9 @@ class OwnerControllerTest {
 
     @Mock
     OwnerService service;
+
+    @Mock
+    Model model;
 
     @InjectMocks
     OwnerController controller;
@@ -64,13 +68,17 @@ class OwnerControllerTest {
     void processFindFormWildcardFound() {
         // given
         Owner owner = new Owner(1l, "Joe", "FindMe");
+        InOrder inOrder = inOrder(model, service);
 
         // when
-        String viewName = controller.processFindForm(owner, bindingResult, Mockito.mock(Model.class));
+        String viewName = controller.processFindForm(owner, bindingResult, model);
 
         // then
         assertThat("%FindMe%").isEqualToIgnoringCase(stringArgumentCaptor.getValue());
         assertThat("owners/ownersList").isEqualToIgnoringCase(viewName);
+        inOrder.verify(service).findAllByLastNameLike(anyString());
+        inOrder.verify(model, times(1)).addAttribute(anyString(), anyList());
+        verifyNoMoreInteractions(model);
     }
 
     @Test
@@ -84,6 +92,7 @@ class OwnerControllerTest {
         // then
         assertThat("%Buck%").isEqualToIgnoringCase(stringArgumentCaptor.getValue());
         assertThat("redirect:/owners/1").isEqualToIgnoringCase(viewName);
+        verifyZeroInteractions(model);
     }
 
     @Test
@@ -95,8 +104,10 @@ class OwnerControllerTest {
         String viewName = controller.processFindForm(owner, bindingResult, null);
 
         // then
+        verifyNoMoreInteractions(service);
         assertThat("%DontFindMe%").isEqualToIgnoringCase(stringArgumentCaptor.getValue());
         assertThat("owners/findOwners").isEqualToIgnoringCase(viewName);
+        verifyZeroInteractions(model);
     }
 
     @Test
